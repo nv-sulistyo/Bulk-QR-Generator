@@ -1,0 +1,11 @@
+.barcode-container {
+    display: inline-block;
+    text-align: center;
+    margin-right: 20px;
+    margin-bottom: 20px;
+}
+
+.barcode-text {
+    margin-top: 10px;
+    text-align: center;
+}
