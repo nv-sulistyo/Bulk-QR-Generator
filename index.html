@@ -2,136 +2,140 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>JOGJA TEAM</title>
-    <link href="bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="qrcode.min.js"></script>
-    <script src="jszip.min.js"></script>
-    <script src="FileSaver.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bulk QR Generator</title>
+  <link href="bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="qrcode.min.js"></script>
+  <script src="jszip.min.js"></script>
+  <script src="FileSaver.min.js"></script>
 </head>
 
 <body>
-    <nav class="container bg-dark text-white rounded p-2 mt-1">
-        <h4 class="ms-2 my-1">QR Maker</h4>
-        <small class="ms-2">By Nova Sulistyo</small>
-    </nav>
-    <div class="container d-flex flex-row align-items-stretch p-0 mb-2 mt-3">
-        <button onclick="generateQRCodes()" class="btn btn-primary">Generate QR Codes</button>
-        <button onclick="downloadQRCodes()" class="btn btn-success ms-2">Download QR Codes</button>
-        <button class="btn btn-secondary ms-2"> Jumlah SN : <span id="barcodeCountSpan">0</span></button>
+  <nav class="container bg-dark text-white rounded p-2 mt-1">
+    <h4 class="ms-2 my-1">QR Maker</h4>
+    <small class="ms-2">By Nova Sulistyo</small>
+  </nav>
+
+  <div class="container d-flex flex-row align-items-stretch p-0 mb-2 mt-3">
+    <button onclick="generateQRCodes()" class="btn btn-primary">Generate QR Codes</button>
+    <button onclick="downloadQRCodes()" class="btn btn-success ms-2">Download QR Codes</button>
+    <button class="btn btn-secondary ms-2"> Jumlah SN : <span id="barcodeCountSpan">0</span></button>
+  </div>
+
+  <div class="container mt-1 p-0">
+    <div class="row">
+      <div class="col-6">
+        <p class="mb-0"><b>Kolom Serial Number</b></p>
+        <textarea id="inputText" class="form-control p-3" style="height: 77vh;" oninput="updateBarcodeCount();"></textarea>
+      </div>
+      <div class="col-6">
+        <p class="mb-0"><b>Kolom QR Code</b></p>
+        <div id="qrcodeContainer" class="border rounded overflow-y-scroll p-3 mt-1" style="height: 77vh;"></div>
+      </div>
     </div>
-    <div class="container mt-1 p-0">
-        <div class="row">
-            <div class="col-6">
-                <p class="mb-0"><b>Kolom Serial Number</b></p>
-                <textarea id="inputText" class="form-control p-3" style="height: 77vh;"
-                    oninput="updateBarcodeCount();"></textarea>
-            </div>
-            <div class="col-6">
-                <p class="mb-0"><b>Kolom QR Code</b></p>
-                <div id="qrcodeContainer" class="border rounded overflow-y-scroll p-3 mt-1" style="height: 77vh;"></div>
-            </div>
-        </div>
-    </div>
+  </div>
 
-    <script>
-        var lines; // Variabel global untuk menyimpan baris
+  <script>
+    // Ambil parameter ?sn=...
+    window.onload = function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const snParam = urlParams.get('sn');
+      if (snParam) {
+        const decoded = decodeURIComponent(snParam);
+        const lines = decoded.split(',');
+        document.getElementById("inputText").value = lines.join('\n');
+        updateBarcodeCount();
+        generateQRCodes();
+      }
+    };
 
-        function generateQRCodes() {
-            var inputText = document.getElementById("inputText").value;
-            lines = inputText.split('\n');
-            var qrcodeContainer = document.getElementById("qrcodeContainer");
+    var lines; // Variabel global untuk menyimpan baris
 
-            // Hapus konten sebelumnya
-            qrcodeContainer.innerHTML = "";
+    function generateQRCodes() {
+      var inputText = document.getElementById("inputText").value;
+      lines = inputText.split('\n');
+      var qrcodeContainer = document.getElementById("qrcodeContainer");
 
-            lines.forEach(function (line, index) {
-                var containerDiv = document.createElement("div");
-                containerDiv.classList.add("barcode-container");
-                qrcodeContainer.appendChild(containerDiv);
+      // Hapus konten sebelumnya
+      qrcodeContainer.innerHTML = "";
 
-                var qrcodeDiv = document.createElement("div");
-                qrcodeDiv.id = "qrcode" + (index + 1);
-                containerDiv.appendChild(qrcodeDiv);
+      lines.forEach(function (line, index) {
+        if (!line.trim()) return;
 
-                new QRCode(qrcodeDiv, {
-                    text: line,
-                    width: 128,
-                    height: 128
-                });
+        var containerDiv = document.createElement("div");
+        containerDiv.classList.add("barcode-container", "mb-3", "text-center");
+        qrcodeContainer.appendChild(containerDiv);
 
-                var textDiv = document.createElement("div");
-                textDiv.classList.add("barcode-text");
-                textDiv.textContent = line;
-                containerDiv.appendChild(textDiv);
-            });
-        }
+        var qrcodeDiv = document.createElement("div");
+        qrcodeDiv.id = "qrcode" + (index + 1);
+        containerDiv.appendChild(qrcodeDiv);
 
-        function downloadQRCodes() {
-            var barcodeContainers = document.getElementsByClassName("barcode-container");
-            var zip = new JSZip();
+        new QRCode(qrcodeDiv, {
+          text: line,
+          width: 128,
+          height: 128
+        });
 
-            Array.from(barcodeContainers).forEach(function (container, index) {
-                var line = lines[index];
-                var qrcodeDiv = container.querySelector("img");
+        var textDiv = document.createElement("div");
+        textDiv.classList.add("barcode-text", "mt-1");
+        textDiv.textContent = line;
+        containerDiv.appendChild(textDiv);
+      });
+    }
 
-                // Lebar dan tinggi tambahan untuk margin putih
-                var marginSize = 10;
-                var canvasWidth = qrcodeDiv.width + 2 * marginSize;
-                var canvasHeight = qrcodeDiv.height + 2 * marginSize;
+    function downloadQRCodes() {
+      var barcodeContainers = document.getElementsByClassName("barcode-container");
+      var zip = new JSZip();
 
-                // Buat elemen canvas untuk menggambar barcode dengan latar belakang putih dan margin
-                var canvas = document.createElement('canvas');
-                var context = canvas.getContext('2d');
-                canvas.width = canvasWidth;
-                canvas.height = canvasHeight;
+      Array.from(barcodeContainers).forEach(function (container, index) {
+        var line = lines[index];
+        var qrcodeImg = container.querySelector("img");
+        if (!qrcodeImg) return;
 
-                // Gambar latar belakang putih
-                context.fillStyle = 'white';
-                context.fillRect(0, 0, canvas.width, canvas.height);
+        var marginSize = 10;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        canvas.width = qrcodeImg.width + 2 * marginSize;
+        canvas.height = qrcodeImg.height + 2 * marginSize;
 
-                // Gambar kode barcode di tengah canvas
-                context.drawImage(qrcodeDiv, marginSize, marginSize);
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(qrcodeImg, marginSize, marginSize);
 
-                // Dapatkan data URL dari canvas
-                var imageDataURL = canvas.toDataURL('image/png');
+        var imageDataURL = canvas.toDataURL('image/png');
+        var imageBlob = base64ToBlob(imageDataURL.replace(/^data:image\/png;base64,/, ""), 'image/png');
+        var fileName = line.replace(/[^a-zA-Z0-9]/gi, '_') + ".png";
+        zip.file(fileName, imageBlob);
+      });
 
-                var imageBlob = base64ToBlob(imageDataURL.replace(/^data:image\/(png|jpeg);base64,/, ""), 'image/png');
-                var fileName = line.replace(/[^a-zA-Z0-9]/gi, '_') + ".png";
-                zip.file(fileName, imageBlob);
-            });
+      zip.generateAsync({ type: "blob" })
+        .then(function (content) {
+          saveAs(content, "qrcodes.zip");
+        });
+    }
 
-            // Generate ZIP dan unduh
-            zip.generateAsync({ type: "blob" })
-                .then(function (content) {
-                    saveAs(content, "qrcodes.zip");
-                });
-        }
+    function base64ToBlob(base64, type) {
+      var binaryString = window.atob(base64);
+      var len = binaryString.length;
+      var bytes = new Uint8Array(len);
 
+      for (var i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
 
-        function base64ToBlob(base64, type) {
-            var binaryString = window.atob(base64);
-            var len = binaryString.length;
-            var bytes = new Uint8Array(len);
+      return new Blob([bytes], { type: type });
+    }
 
-            for (var i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            return new Blob([bytes], { type: type });
-        }
-
-        function updateBarcodeCount() {
-            var inputText = document.getElementById("inputText").value;
-            lines = inputText.split('\n');
-            var count = lines.length;
-            document.getElementById("barcodeCountSpan").innerText = count;
-        }
-
-    </script>
-    <script src="bootstrap.bundle.min.js"></script>
+    function updateBarcodeCount() {
+      var inputText = document.getElementById("inputText").value;
+      lines = inputText.split('\n');
+      var count = lines.filter(line => line.trim()).length;
+      document.getElementById("barcodeCountSpan").innerText = count;
+    }
+  </script>
+  <script src="bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
